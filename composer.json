@@ -1,0 +1,34 @@
+{
+    "name": "pk-engine/lang-sync-excel",
+    "description": "Синхронизация переводов с Excel таблицей",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Evgeny Kylin",
+            "email": "mail@pressf1.ru"
+        }
+    ],
+    "require": {
+        "php": "^8.2",
+        "laravel/framework": "^11|^12",
+        "PHPOffice/PhpSpreadsheet": "^5.1"
+    },
+    "autoload": {
+        "psr-4": {
+            "PkEngine\\LangSyncExcel\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "PkEngine\\LangSyncExcel\\Providers\\LangSyncExcelProvider"
+            ]
+        }
+    },
+    "config": {
+        "sort-packages": true
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}
