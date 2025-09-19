@@ -70,7 +70,6 @@ class LangGetService extends LangService
 
     public function getExcel(): bool
     {
-        return true;
         $file = Http::get($this->url)->body();
         return $this->storage->put('lang/lang_temp.xlsx', $file);
     }
