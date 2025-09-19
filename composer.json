@@ -12,7 +12,7 @@
     "require": {
         "php": "^8.2",
         "laravel/framework": "^11|^12",
-        "composer require phpoffice/phpspreadsheet": "^5.1"
+        "phpoffice/phpspreadsheet": "^5.1"
     },
     "autoload": {
         "psr-4": {
