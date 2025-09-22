@@ -8,28 +8,26 @@ use PkEngine\LangSyncExcel\Services\LangSetService;
 class LangSetCommand extends Command
 {
     /**
-     * The name and signature of the console command.
-     *
      * @var string
      */
     protected $signature = 'lang:set';
 
     /**
-     * The console command description.
-     *
      * @var string
      */
-    protected $description = 'Command description';
+    protected $description = 'Генерация Ecxel файла с переводами';
 
     /**
-     * Execute the console command.
-     *
      * @return int
      */
-    public function handle()
+    public function handle(): int
     {
-        $service = new LangSetService();
-        $service->storeExcelToFile();
+        try {
+            $service = new LangSetService();
+            $service->storeExcelToFile();
+        }catch (\Exception $e){
+            $this->error($e->getMessage());
+        }
 
         return Command::SUCCESS;
     }

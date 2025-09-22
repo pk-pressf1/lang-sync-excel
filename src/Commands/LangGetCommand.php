@@ -20,7 +20,7 @@ class LangGetCommand extends Command
      *
      * @var string
      */
-    protected $description = 'Command description';
+    protected $description = 'Получение Excel файла с переводами';
 
     /**
      * Execute the console command.
@@ -30,8 +30,14 @@ class LangGetCommand extends Command
      */
     public function handle(): int
     {
-        $service = new LangGetService();
-        $service->parseFromUrl();
+        try {
+            $service = new LangGetService();
+            $service->parseFromUrl();
+        }catch (\Exception $e){
+            $this->error($e->getMessage());
+        }
+
+
 
         return Command::SUCCESS;
     }

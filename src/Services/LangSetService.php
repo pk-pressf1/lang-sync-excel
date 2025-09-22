@@ -14,7 +14,7 @@ use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 
 class LangSetService extends LangService
 {
-    protected array $phrases;
+    protected array $phrases = [];
 
     public function __construct()
     {

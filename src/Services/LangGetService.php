@@ -2,16 +2,13 @@
 
 namespace PkEngine\LangSyncExcel\Services;
 
-use Illuminate\Contracts\Filesystem\Filesystem;
+use Exception;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Storage;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\IOFactory;
-use GuzzleHttp\Client;
-use Symfony\Component\Finder\SplFileInfo;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 class LangGetService extends LangService
 {
@@ -19,33 +16,36 @@ class LangGetService extends LangService
 
     protected Spreadsheet $spreadsheet;
 
+    /**
+     * @throws Exception
+     */
     public function __construct()
     {
         $this->url = config('lang-sync-excel.excel_url', '');
         $this->locales = $this->getLocales();
         if(!$this->url){
-            throw new \Exception('LangSyncExcel: excel_url не задан в config/lang-sync-excel.php OR в .env LANG_SYNC_EXCEL_URL');
+            throw new Exception('LangSyncExcel: excel_url не задан в config/lang-sync-excel.php OR в .env LANG_SYNC_EXCEL_URL');
         }
 
         parent::__construct();
     }
 
-    public function parseFromUrl()
+    /**
+     * @throws Exception
+     */
+    public function parseFromUrl(): void
     {
         if(!$this->getExcel()){
-            throw new \Exception('LangSyncExcel: не удалось получить excel файл');
+            throw new Exception('LangSyncExcel: не удалось получить excel файл');
         }
 
         $this->spreadsheet = IOFactory::load($this->storage->path('/lang/lang_temp.xlsx'));
         $this->fileList = $this->getFileList();
-        if(!File::exists(lang_path())){
-            File::makeDirectory(lang_path());
-        }
         foreach($this->spreadsheet->getAllSheets() as $sheet){
             $data = $this->getData($sheet);
             $header = array_shift($data);
             $fileLabel = $sheet->getTitle();
-            if(!$header) throw new \Exception('LangSyncExcel: не удалось получить заголовок из таблицы');
+            if(!$header) throw new Exception('LangSyncExcel: не удалось получить заголовок из таблицы');
             foreach ($header as $i => $locale) {
                 if($this->locales->contains($locale)){
                     $dataList = collect($data)->mapWithKeys(fn($item) => [$item[0] => $item[$i]])->toArray();
@@ -55,6 +55,11 @@ class LangGetService extends LangService
         }
     }
 
+    /**
+     * Получаем данные из таблицы
+     * @param Worksheet $sheet
+     * @return array
+     */
     public function getData(Worksheet $sheet): array
     {
         $data = []; // Создаем пустой массив для хранения данных
@@ -70,18 +75,33 @@ class LangGetService extends LangService
         return $data;
     }
 
+    /**
+     * Сохранение Excel в файл
+     * @return bool
+     */
     public function getExcel(): bool
     {
         $file = Http::get($this->url)->body();
         return $this->storage->put('lang/lang_temp.xlsx', $file);
     }
 
+    /**
+     * Получаем список файлов
+     * @return Collection
+     */
     protected function getFileList(): Collection
     {
         return collect($this->spreadsheet->getAllSheets())->map(fn ($sheet) => $sheet->getTitle());
     }
 
 
+    /**
+     * Сохраняем данные в файл
+     * @param array $data
+     * @param string $locale
+     * @param string $fileLabel
+     * @throws Exception
+     */
     protected function saveLang(array $data, string $locale, string $fileLabel): void
     {
         $data = Arr::undot($data);
@@ -91,15 +111,21 @@ class LangGetService extends LangService
         $export = implode("\n", $lines);
         if(!File::exists(lang_path("$locale"))){
             if(!File::makeDirectory(lang_path("$locale"))){
-                throw new \Exception('LangSyncExcel: не удалось создать папку: ' . lang_path("$locale"));
+                throw new Exception('LangSyncExcel: не удалось создать папку: ' . lang_path("$locale"));
             };
         }
         if(!File::put(lang_path($path), $export)){
-            throw new \Exception('LangSyncExcel: не удалось сохранить файл: ' . lang_path($path));
+            throw new Exception('LangSyncExcel: не удалось сохранить файл: ' . lang_path($path));
         };
     }
 
-    protected function recursivePhpExport(array $arr, $i = 1): array
+    /**
+     * Рекурсивно создаем массив для php файла
+     * @param array $arr
+     * @param int $i
+     * @return array
+     */
+    protected function recursivePhpExport(array $arr, int $i = 1): array
     {
         $tab = '';
         for($n = 1; $n <= $i; $n++){
@@ -111,6 +137,9 @@ class LangGetService extends LangService
             $lines = [];
         }
         foreach($arr as $key => $item){
+            if(!$key){
+                continue;
+            }
             if(is_array($item)){
                 $lines[] = $tab.'"'.$key.'" => [';
                 $subLines = $this->recursivePhpExport($item, $i + 1);
@@ -126,6 +155,10 @@ class LangGetService extends LangService
         return $lines;
     }
 
+    /**
+     * @param array $arr
+     * @return array
+     */
     protected function closePhpExport(array $arr): array
     {
         $arr[] = '];';

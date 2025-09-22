@@ -25,6 +25,9 @@ abstract class LangService
      */
     protected function getLocales(): \Illuminate\Support\Collection
     {
+        if(!File::exists(lang_path())){
+            File::makeDirectory(lang_path());
+        }
         return collect(File::directories(lang_path('/')))->map(function ($dir) {
             return basename($dir);
         });
