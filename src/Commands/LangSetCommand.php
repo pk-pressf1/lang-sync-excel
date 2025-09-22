@@ -1,9 +1,9 @@
 <?php
 
-namespace PKEngine\LangSyncExcel\Commands;
+namespace PkEngine\LangSyncExcel\Commands;
 
 use Illuminate\Console\Command;
-use PKEngine\LangSyncExcel\Services\LangSetService;
+use PkEngine\LangSyncExcel\Services\LangSetService;
 
 class LangSetCommand extends Command
 {

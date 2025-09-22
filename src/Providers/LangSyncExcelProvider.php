@@ -1,6 +1,6 @@
 <?php
 
-namespace PKEngine\LangSyncExcel\Providers;
+namespace PkEngine\LangSyncExcel\Providers;
 
 use PkEngine\LangSyncExcel\Commands\{LangGetCommand, LangSetCommand};
 use Illuminate\Support\ServiceProvider;

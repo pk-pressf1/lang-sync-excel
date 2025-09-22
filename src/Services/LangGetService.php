@@ -1,6 +1,6 @@
 <?php
 
-namespace PKEngine\LangSyncExcel\Services;
+namespace PkEngine\LangSyncExcel\Services;
 
 use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Support\Arr;
