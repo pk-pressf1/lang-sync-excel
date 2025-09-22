@@ -9,10 +9,11 @@ composer require pk-engine/lang-sync-excel
 ```
 
 2. Добавьте провайдер в `bootstrap/providers.php`:
+
 ```php
 return [
     //
-    \PKEngine\LangSyncExcel\Providers\LangSyncExcelProvider::class
+    \PkEngine\LangSyncExcel\Providers\LangSyncExcelProvider::class
 ];
 ```
 

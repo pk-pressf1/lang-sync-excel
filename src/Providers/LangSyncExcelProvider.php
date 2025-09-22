@@ -2,7 +2,7 @@
 
 namespace PKEngine\LangSyncExcel\Providers;
 
-use PKEngine\LangSyncExcel\Commands\{LangGetCommand, LangSetCommand};
+use PkEngine\LangSyncExcel\Commands\{LangGetCommand, LangSetCommand};
 use Illuminate\Support\ServiceProvider;
 
 class LangSyncExcelProvider extends ServiceProvider
