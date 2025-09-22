@@ -90,9 +90,13 @@ class LangGetService extends LangService
         $lines = $this->closePhpExport($lines);
         $export = implode("\n", $lines);
         if(!File::exists(lang_path("$locale"))){
-            File::makeDirectory(lang_path("$locale"));
+            if(!File::makeDirectory(lang_path("$locale"))){
+                throw new \Exception('LangSyncExcel: не удалось создать папку: ' . lang_path("$locale"));
+            };
         }
-        File::put(lang_path($path), $export);
+        if(!File::put(lang_path($path), $export)){
+            throw new \Exception('LangSyncExcel: не удалось сохранить файл: ' . lang_path($path));
+        };
     }
 
     protected function recursivePhpExport(array $arr, $i = 1): array
