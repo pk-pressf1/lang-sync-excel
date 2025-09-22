@@ -30,6 +30,7 @@ class LangGetCommand extends Command
      * Execute the console command.
      *
      * @return int
+     * @throws \Exception
      */
     public function handle(): int
     {
