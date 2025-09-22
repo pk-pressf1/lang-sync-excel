@@ -38,7 +38,9 @@ class LangGetService extends LangService
 
         $this->spreadsheet = IOFactory::load($this->storage->path('/lang/lang_temp.xlsx'));
         $this->fileList = $this->getFileList();
-
+        if(!File::exists(lang_path())){
+            File::makeDirectory(lang_path());
+        }
         foreach($this->spreadsheet->getAllSheets() as $sheet){
             $data = $this->getData($sheet);
             $header = array_shift($data);
@@ -80,7 +82,7 @@ class LangGetService extends LangService
     }
 
 
-    protected function saveLang(array $data, string $locale, string $fileLabel)
+    protected function saveLang(array $data, string $locale, string $fileLabel): void
     {
         $data = Arr::undot($data);
         $path = "$locale/$fileLabel.php";
