@@ -10,6 +10,9 @@ use Illuminate\Support\Facades\Http;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
+use PkEngine\LangSyncExcel\Builders\JsonFileBuilder;
+use PkEngine\LangSyncExcel\Builders\PhpFileBuilder;
+
 class LangGetService extends LangService
 {
     protected string $url;
@@ -33,14 +36,48 @@ class LangGetService extends LangService
     /**
      * @throws Exception
      */
-    public function parseFromUrl(): void
+    public function parseFromUrlToPhp(): void
     {
-        if(!$this->getExcel()){
-            throw new Exception('LangSyncExcel: не удалось получить excel файл');
-        }
+        $this->parseFromUrl();
+        $this->parseExcel(
+            fn (
+                array $dataList,
+                string $locale,
+                string $fileLabel
+            ) => $this->saveLangPhp($dataList, $locale, $fileLabel)
+        );
 
-        $this->spreadsheet = IOFactory::load($this->storage->path('/lang/lang_temp.xlsx'));
-        $this->fileList = $this->getFileList();
+    }
+
+    /**
+     * @throws Exception
+     */
+    public function parseFromUrlToJson(): void
+    {
+        $this->parseFromUrl();
+        $locales = [];
+        $this->parseExcel(function (
+                array $dataList,
+                string $locale,
+                string $fileLabel
+            ) use (&$locales){
+
+            if(!isset($locales[$locale]) || !is_array($locales[$locale])){
+                $locales[$locale] = [];
+            }
+            if(!isset($locales[$locale][$fileLabel]) ||!is_array($locales[$locale][$fileLabel])){
+                $locales[$locale][$fileLabel] = [];
+            }
+            $locales[$locale][$fileLabel] = array_merge($locales[$locale][$fileLabel], Arr::undot($dataList));
+        }
+        );
+        foreach ($locales as $locale => $data) {
+            $this->saveLangJson($data, $locale);
+        }
+    }
+
+    private function parseExcel(\Closure $closure): void
+    {
         foreach($this->spreadsheet->getAllSheets() as $sheet){
             $data = $this->getData($sheet);
             $header = array_shift($data);
@@ -49,10 +86,24 @@ class LangGetService extends LangService
             foreach ($header as $i => $locale) {
                 if($this->locales->contains($locale)){
                     $dataList = collect($data)->mapWithKeys(fn($item) => [$item[0] => $item[$i]])->toArray();
-                    $this->saveLang($dataList, $locale, $fileLabel);
+                    $closure($dataList, $locale, $fileLabel);
                 }
             }
         }
+    }
+
+    /**
+     * @throws Exception
+     */
+    private function parseFromUrl(): void
+    {
+        if(!$this->getExcel()){
+            throw new Exception('LangSyncExcel: не удалось получить excel файл');
+        }
+
+        $this->spreadsheet = IOFactory::load($this->storage->path('/lang/lang_temp.xlsx'));
+        $this->fileList = $this->getFileList();
+
     }
 
     /**
@@ -60,7 +111,7 @@ class LangGetService extends LangService
      * @param Worksheet $sheet
      * @return array
      */
-    public function getData(Worksheet $sheet): array
+    private function getData(Worksheet $sheet): array
     {
         $data = []; // Создаем пустой массив для хранения данных
         foreach ($sheet->getRowIterator() as $row) {
@@ -79,7 +130,7 @@ class LangGetService extends LangService
      * Сохранение Excel в файл
      * @return bool
      */
-    public function getExcel(): bool
+    private function getExcel(): bool
     {
         $file = Http::get($this->url)->body();
         return $this->storage->put('lang/lang_temp.xlsx', $file);
@@ -96,72 +147,25 @@ class LangGetService extends LangService
 
 
     /**
-     * Сохраняем данные в файл
+     * Сохраняем данные в файл php
      * @param array $data
      * @param string $locale
      * @param string $fileLabel
      * @throws Exception
      */
-    protected function saveLang(array $data, string $locale, string $fileLabel): void
+    protected function saveLangPhp(array $data, string $locale, string $fileLabel): void
     {
-        $data = Arr::undot($data);
-        $path = "$locale/$fileLabel.php";
-        $lines = $this->recursivePhpExport($data);
-        $lines = $this->closePhpExport($lines);
-        $export = implode("\n", $lines);
-        if(!File::exists(lang_path("$locale"))){
-            if(!File::makeDirectory(lang_path("$locale"))){
-                throw new Exception('LangSyncExcel: не удалось создать папку: ' . lang_path("$locale"));
-            };
-        }
-        if(!File::put(lang_path($path), $export)){
-            throw new Exception('LangSyncExcel: не удалось сохранить файл: ' . lang_path($path));
-        };
+        $builder = new PhpFileBuilder($data, $locale, $fileLabel);
+        $builder->build();
     }
 
     /**
-     * Рекурсивно создаем массив для php файла
-     * @param array $arr
-     * @param int $i
-     * @return array
+     * Сохраняем данные в json
+     * @throws Exception
      */
-    protected function recursivePhpExport(array $arr, int $i = 1): array
+    protected function saveLangJson(array $data, string $locale): void
     {
-        $tab = '';
-        for($n = 1; $n <= $i; $n++){
-            $tab .= '    ';
-        }
-        if($i === 1){
-            $lines = ['<?php', 'return ['];
-        }else{
-            $lines = [];
-        }
-        foreach($arr as $key => $item){
-            if(!$key){
-                continue;
-            }
-            if(is_array($item)){
-                $lines[] = $tab.'"'.$key.'" => [';
-                $subLines = $this->recursivePhpExport($item, $i + 1);
-                $lines = array_merge($lines, $subLines);
-                $lines[] = $tab.'],';
-            }else{
-                $item = str_replace('"', '\"', $item);
-                $lines[] = $tab.'"'.$key.'" => "'.$item.'",';
-
-            }
-
-        }
-        return $lines;
-    }
-
-    /**
-     * @param array $arr
-     * @return array
-     */
-    protected function closePhpExport(array $arr): array
-    {
-        $arr[] = '];';
-        return $arr;
+        $builder = new JsonFileBuilder($data, $locale);
+        $builder->build();
     }
 }
