@@ -2,12 +2,15 @@
 
 namespace PkEngine\LangSyncExcel\Builders;
 
+use Illuminate\Console\OutputStyle;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\File;
 use Exception;
 
 class PhpFileBuilder implements FileBuilderInterface
 {
+
+    protected ?OutputStyle $output = null;
 
     public function __construct(
         protected array $data,
@@ -33,6 +36,10 @@ class PhpFileBuilder implements FileBuilderInterface
         if(!File::put(lang_path($path), $export)){
             throw new Exception('LangSyncExcel: не удалось сохранить файл: ' . lang_path($path));
         };
+
+        if(File::exists(lang_path($path)) && $this->output){
+            $this->output->success('Файл сохранен: ' . lang_path($path));
+        }
     }
 
     /**
@@ -79,5 +86,10 @@ class PhpFileBuilder implements FileBuilderInterface
     {
         $arr[] = '];';
         return $arr;
+    }
+
+    public function setOutput(OutputStyle $output): void
+    {
+        $this->output = $output;
     }
 }

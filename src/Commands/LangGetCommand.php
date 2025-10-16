@@ -31,17 +31,17 @@ class LangGetCommand extends Command
     public function handle(): int
     {
         $json = $this->option('json');
-//        try {
+        try {
             $service = new LangGetService();
+            $service->setOutput($this->output);
             if($json){
                 $service->parseFromUrlToJson();
             }else{
                 $service->parseFromUrlToPhp();
             }
-
-//        }catch (\Exception $e){
-//            $this->error($e->getMessage());
-//        }
+        }catch (\Exception $e){
+            $this->error($e->getMessage());
+        }
 
 
 

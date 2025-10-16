@@ -3,6 +3,7 @@
 namespace PkEngine\LangSyncExcel\Services;
 
 use Exception;
+use Illuminate\Console\OutputStyle;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\File;
@@ -18,6 +19,8 @@ class LangGetService extends LangService
     protected string $url;
 
     protected Spreadsheet $spreadsheet;
+
+    protected ?OutputStyle $output = null;
 
     /**
      * @throws Exception
@@ -156,6 +159,7 @@ class LangGetService extends LangService
     protected function saveLangPhp(array $data, string $locale, string $fileLabel): void
     {
         $builder = new PhpFileBuilder($data, $locale, $fileLabel);
+        $builder->setOutput($this->output);
         $builder->build();
     }
 
@@ -166,6 +170,12 @@ class LangGetService extends LangService
     protected function saveLangJson(array $data, string $locale): void
     {
         $builder = new JsonFileBuilder($data, $locale);
+        $builder->setOutput($this->output);
         $builder->build();
+    }
+
+    public function setOutput(OutputStyle $output): void
+    {
+        $this->output = $output;
     }
 }

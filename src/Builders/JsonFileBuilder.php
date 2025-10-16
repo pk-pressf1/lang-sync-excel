@@ -2,11 +2,14 @@
 
 namespace PkEngine\LangSyncExcel\Builders;
 
+use Illuminate\Console\OutputStyle;
 use Illuminate\Support\Facades\File;
 use Exception;
 
 class JsonFileBuilder implements FileBuilderInterface
 {
+
+    protected ?OutputStyle $output = null;
 
     public function __construct(
         protected array $data,
@@ -83,5 +86,10 @@ class JsonFileBuilder implements FileBuilderInterface
                 $lines[$i] = substr($lastString, 0, -1);
             }
         }
+    }
+
+    public function setOutput(OutputStyle $output): void
+    {
+        $this->output = $output;
     }
 }
