@@ -6,7 +6,6 @@ use Exception;
 use Illuminate\Console\OutputStyle;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Http;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\IOFactory;
@@ -32,7 +31,6 @@ class LangGetService extends LangService
         if(!$this->url){
             throw new Exception('LangSyncExcel: excel_url не задан в config/lang-sync-excel.php OR в .env LANG_SYNC_EXCEL_URL');
         }
-
         parent::__construct();
     }
 
@@ -41,6 +39,7 @@ class LangGetService extends LangService
      */
     public function parseFromUrlToPhp(): void
     {
+        $this->output->info("Обнаружены языки: {$this->locales->join(', ')}");
         $this->parseFromUrl();
         $this->parseExcel(
             fn (
@@ -57,6 +56,7 @@ class LangGetService extends LangService
      */
     public function parseFromUrlToJson(): void
     {
+        $this->output->info("Обнаружены языки: {$this->locales->join(', ')}");
         $this->parseFromUrl();
         $locales = [];
         $this->parseExcel(function (
@@ -136,6 +136,7 @@ class LangGetService extends LangService
     private function getExcel(): bool
     {
         $file = Http::get($this->url)->body();
+        $this->output->info('Получение файла Excel ' . $this->url);
         return $this->storage->put('lang/lang_temp.xlsx', $file);
     }
 
