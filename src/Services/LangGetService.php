@@ -12,6 +12,8 @@ use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use PkEngine\LangSyncExcel\Builders\JsonFileBuilder;
 use PkEngine\LangSyncExcel\Builders\PhpFileBuilder;
+use PkEngine\LangSyncExcel\Providers\GoogleProvider;
+use PkEngine\LangSyncExcel\Providers\YandexProvider;
 
 class LangGetService extends LangService
 {
@@ -21,12 +23,15 @@ class LangGetService extends LangService
 
     protected ?OutputStyle $output = null;
 
+    protected string $provider;
+
     /**
      * @throws Exception
      */
     public function __construct()
     {
         $this->url = config('lang-sync-excel.excel_url', '');
+        $this->provider = config('lang-sync-excel.provider', 'google');
         $this->locales = $this->getLocales();
         if(!$this->url){
             throw new Exception('LangSyncExcel: excel_url не задан в config/lang-sync-excel.php OR в .env LANG_SYNC_EXCEL_URL');
@@ -132,10 +137,19 @@ class LangGetService extends LangService
     /**
      * Сохранение Excel в файл
      * @return bool
+     * @throws Exception
      */
     private function getExcel(): bool
     {
-        $file = Http::get($this->url)->body();
+
+        $file = match ($this->provider){
+            'google' => app(GoogleProvider::class)->handler($this->url),
+            'yandex' => app(YandexProvider::class)->handler($this->url),
+            default => null
+        };
+        if(!$file){
+            throw new Exception('LangSyncExcel: не удалось получить файл Excel');
+        }
         $this->output->info('Получение файла Excel ' . $this->url);
         return $this->storage->put('lang/lang_temp.xlsx', $file);
     }

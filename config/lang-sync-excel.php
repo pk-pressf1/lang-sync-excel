@@ -20,4 +20,14 @@ return [
     |
     */
     'output_disk' => env('LANG_SYNC_OUTPUT_DISK', 'local'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Provider
+    |--------------------------------------------------------------------------
+    |
+    | The provider getter excel. google, yandex
+    |
+    */
+    'provider' => env('LANG_SYNC_PROVIDER', 'google')
 ];
