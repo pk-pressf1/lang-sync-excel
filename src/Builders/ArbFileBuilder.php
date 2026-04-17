@@ -4,11 +4,10 @@ namespace PkEngine\LangSyncExcel\Builders;
 
 use Illuminate\Console\OutputStyle;
 use Illuminate\Support\Facades\File;
-use Exception;
+use \Exception;
 
-class JsonFileBuilder implements FileBuilderInterface
+class ArbFileBuilder implements FileBuilderInterface
 {
-
     protected ?OutputStyle $output = null;
 
     public function __construct(
@@ -21,7 +20,8 @@ class JsonFileBuilder implements FileBuilderInterface
      */
     public function build(): void
     {
-        $path = "json/$this->locale.json";
+        $path = "arb/$this->locale.arb";
+
         $lines = $this->recursiveJsonExport($this->data);
         $lines = $this->closeJsonExport($lines);
         $export = implode("\n", $lines);
@@ -56,6 +56,7 @@ class JsonFileBuilder implements FileBuilderInterface
                 $lines[] = $tab.'},';
             }elseif(is_string($data)){
                 $data = $this->escaping($data);
+                $data = $this->prepareVariables($data);
                 $lines[] = $tab.'"'.$key.'": "'.$data.'",';
             }
         }
@@ -74,6 +75,11 @@ class JsonFileBuilder implements FileBuilderInterface
         $str = str_replace("\n", " ", $str);
         $str = str_replace('"', '\"', $str);
         return $str;
+    }
+
+    protected function prepareVariables(string $str)
+    {
+        return preg_replace("/:([a-zA-Z_][a-zA-Z0-9_-]*)/", '{$1}', $str);
     }
 
     protected function clearComma(array &$lines): void

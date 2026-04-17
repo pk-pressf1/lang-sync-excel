@@ -24,6 +24,7 @@ class LangSetCommand extends Command
     {
         try {
             $service = new LangSetService();
+            $service->setOutput($this->output);
             $service->storeExcelToFile();
         }catch (\Exception $e){
             $this->error($e->getMessage());

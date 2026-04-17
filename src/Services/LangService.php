@@ -11,7 +11,7 @@ abstract class LangService
 {
     protected Filesystem $storage;
 
-    protected Collection $locales;
+    public Collection $locales;
 
     protected Collection $fileList;
 
@@ -25,11 +25,14 @@ abstract class LangService
      */
     protected function getLocales(): \Illuminate\Support\Collection
     {
+
         if(!File::exists(lang_path())){
             File::makeDirectory(lang_path());
         }
         return collect(File::directories(lang_path('/')))->map(function ($dir) {
             return basename($dir);
+        })->filter(function ($dir){
+            return ! in_array($dir, ['json', 'arb']);
         });
     }
 

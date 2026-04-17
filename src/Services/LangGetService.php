@@ -6,10 +6,10 @@ use Exception;
 use Illuminate\Console\OutputStyle;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Http;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
+use PkEngine\LangSyncExcel\Builders\ArbFileBuilder;
 use PkEngine\LangSyncExcel\Builders\JsonFileBuilder;
 use PkEngine\LangSyncExcel\Builders\PhpFileBuilder;
 use PkEngine\LangSyncExcel\Providers\GoogleProvider;
@@ -44,14 +44,12 @@ class LangGetService extends LangService
      */
     public function parseFromUrlToPhp(): void
     {
-        $this->output->info("Обнаружены языки: {$this->locales->join(', ')}");
-        $this->parseFromUrl();
         $this->parseExcel(
-            fn (
-                array $dataList,
-                string $locale,
-                string $fileLabel
-            ) => $this->saveLangPhp($dataList, $locale, $fileLabel)
+            function (array $dataList, string $locale, string $fileLabel) {
+                $builder = new PhpFileBuilder($dataList, $locale, $fileLabel);
+                $builder->setOutput($this->output);
+                $builder->build();
+            }
         );
 
     }
@@ -61,15 +59,39 @@ class LangGetService extends LangService
      */
     public function parseFromUrlToJson(): void
     {
-        $this->output->info("Обнаружены языки: {$this->locales->join(', ')}");
-        $this->parseFromUrl();
+        $locales = $this->prepareFlat();
+        foreach ($locales as $locale => $data) {
+            $builder = new JsonFileBuilder($data, $locale);
+            $builder->setOutput($this->output);
+            $builder->build();
+        }
+    }
+
+
+    /**
+     * @throws Exception
+     */
+    public function parseFromUrlToArb(): void
+    {
+        $locales = $this->prepareFlat();
+        foreach ($locales as $locale => $data) {
+            $builder = new ArbFileBuilder($data, $locale);
+            $builder->setOutput($this->output);
+            $builder->build();
+        }
+    }
+
+    /**
+     * @throws Exception
+     */
+    private function prepareFlat(): array
+    {
         $locales = [];
         $this->parseExcel(function (
-                array $dataList,
-                string $locale,
-                string $fileLabel
-            ) use (&$locales){
-
+            array $dataList,
+            string $locale,
+            string $fileLabel
+        ) use (&$locales){
             if(!isset($locales[$locale]) || !is_array($locales[$locale])){
                 $locales[$locale] = [];
             }
@@ -79,11 +101,12 @@ class LangGetService extends LangService
             $locales[$locale][$fileLabel] = array_merge($locales[$locale][$fileLabel], Arr::undot($dataList));
         }
         );
-        foreach ($locales as $locale => $data) {
-            $this->saveLangJson($data, $locale);
-        }
+        return $locales;
     }
 
+    /**
+     * @throws Exception
+     */
     private function parseExcel(\Closure $closure): void
     {
         foreach($this->spreadsheet->getAllSheets() as $sheet){
@@ -103,7 +126,7 @@ class LangGetService extends LangService
     /**
      * @throws Exception
      */
-    private function parseFromUrl(): void
+    public function parseFromUrl(): void
     {
         if(!$this->getExcel()){
             throw new Exception('LangSyncExcel: не удалось получить excel файл');
@@ -161,32 +184,6 @@ class LangGetService extends LangService
     protected function getFileList(): Collection
     {
         return collect($this->spreadsheet->getAllSheets())->map(fn ($sheet) => $sheet->getTitle());
-    }
-
-
-    /**
-     * Сохраняем данные в файл php
-     * @param array $data
-     * @param string $locale
-     * @param string $fileLabel
-     * @throws Exception
-     */
-    protected function saveLangPhp(array $data, string $locale, string $fileLabel): void
-    {
-        $builder = new PhpFileBuilder($data, $locale, $fileLabel);
-        $builder->setOutput($this->output);
-        $builder->build();
-    }
-
-    /**
-     * Сохраняем данные в json
-     * @throws Exception
-     */
-    protected function saveLangJson(array $data, string $locale): void
-    {
-        $builder = new JsonFileBuilder($data, $locale);
-        $builder->setOutput($this->output);
-        $builder->build();
     }
 
     public function setOutput(OutputStyle $output): void

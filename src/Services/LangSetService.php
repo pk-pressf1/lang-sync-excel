@@ -2,12 +2,12 @@
 
 namespace PkEngine\LangSyncExcel\Services;
 
+use Illuminate\Console\OutputStyle;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\File;
-use Illuminate\Support\Facades\Storage;
+use PhpOffice\PhpSpreadsheet\Writer\Exception;
 use Symfony\Component\Finder\SplFileInfo;
-use Illuminate\Contracts\Filesystem\Filesystem;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
@@ -16,6 +16,8 @@ class LangSetService extends LangService
 {
     protected array $phrases = [];
 
+    protected ?OutputStyle $output = null;
+
     public function __construct()
     {
         $this->locales = $this->getLocales();
@@ -23,6 +25,10 @@ class LangSetService extends LangService
         parent::__construct();
     }
 
+    /**
+     * @return void
+     * @throws Exception
+     */
     public function storeExcelToFile(): void
     {
 
@@ -45,7 +51,6 @@ class LangSetService extends LangService
                 $data = array_merge($blank, $this->getFileData($locale, $fileLabel));
                 $this->phrases[$fileLabel][$locale] = $data;
             });
-
         });
     }
 
@@ -53,6 +58,7 @@ class LangSetService extends LangService
      * Запись файла в storage
      * @param Spreadsheet $spreadsheet
      * @return void
+     * @throws Exception
      */
     private function storeExcel(Spreadsheet $spreadsheet): void
     {
@@ -71,47 +77,51 @@ class LangSetService extends LangService
     /**
      * Формирование таблицы
      * @return Spreadsheet
+     * @throws \PhpOffice\PhpSpreadsheet\Exception
      */
     private function makeExcel(): Spreadsheet
     {
         $spreadsheet = new Spreadsheet();
         $spreadsheet->removeSheetByIndex(0);
         foreach ($this->phrases as $fileLabel => $localesData) {
+            try{
+                // Проверяем, существует ли лист с именем локали
+                if (!$spreadsheet->sheetNameExists($fileLabel)) {
+                    $sheet = $spreadsheet->createSheet();
+                    $sheet->setTitle(substr($fileLabel, 0, 31));
+                } else {
+                    $sheet = $spreadsheet->setActiveSheetIndexByName($fileLabel);
+                }
 
-            // Проверяем, существует ли лист с именем локали
-            if (!$spreadsheet->sheetNameExists($fileLabel)) {
-                $sheet = $spreadsheet->createSheet();
-                $sheet->setTitle(substr($fileLabel, 0, 31));
-            } else {
-                $sheet = $spreadsheet->setActiveSheetIndexByName($fileLabel);
-            }
+                $keys = $this->getKeys($fileLabel);
 
-            $keys = $this->getKeys($fileLabel);
-
-            // Заполняем заголовки
-            $sheet->setCellValue('A1', 'Key');
-            $this->locales->each(function (string $locale, $index) use (&$sheet, $keys){
-                $column = Coordinate::stringFromColumnIndex($index + 2);
-                $sheet->setCellValue($column . '1', $locale);
-                $sheet->getColumnDimension($column)->setWidth(30);
-            });
-
-            // Устанавливаем ширину первого столбца (A)
-            $sheet->getColumnDimension('A')->setWidth(50);
-
-
-            // Заполняем данные
-            foreach ($keys as $index => $key) {
-                $row = $index + 2;
-
-                $sheet->setCellValue('A' . $row, $key);
-
-                $this->locales->each(function (string $locale, $index) use (&$sheet, $key, $row, $localesData){
+                // Заполняем заголовки
+                $sheet->setCellValue('A1', 'Key');
+                $this->locales->each(function (string $locale, $index) use (&$sheet, $keys){
                     $column = Coordinate::stringFromColumnIndex($index + 2);
-
-                    $value = $localesData[$locale][$key] ?? '';
-                    $sheet->setCellValue($column . $row, $value);
+                    $sheet->setCellValue($column . '1', $locale);
+                    $sheet->getColumnDimension($column)->setWidth(30);
                 });
+
+                // Устанавливаем ширину первого столбца (A)
+                $sheet->getColumnDimension('A')->setWidth(50);
+
+
+                // Заполняем данные
+                foreach ($keys as $index => $key) {
+                    $row = $index + 2;
+
+                    $sheet->setCellValue('A' . $row, $key);
+
+                    $this->locales->each(function (string $locale, $index) use (&$sheet, $key, $row, $localesData, $keys){
+                        $column = Coordinate::stringFromColumnIndex($index + 2);
+
+                        $value = $localesData[$locale][$key] ?? '';
+                        $sheet->setCellValue($column . $row, $value);
+                    });
+                }
+            } catch (\Exception $e) {
+                $this->output->error($e->getMessage());
             }
         }
 
@@ -125,7 +135,7 @@ class LangSetService extends LangService
             $fileData = $this->getFileData($locale, $fileLabel);
             $keys = array_merge($keys, array_keys($fileData));
         });
-        return array_unique($keys); ;
+        return array_unique($keys);
 
     }
 
@@ -140,7 +150,7 @@ class LangSetService extends LangService
         $filePath = lang_path("/$locale/$fileLabel.php");
         if(!File::exists($filePath)) return [];
         $file = require $filePath;
-        return Arr::dot($file);
+        return array_filter(Arr::dot($file));
     }
 
     protected function getFileList(): Collection
@@ -152,5 +162,10 @@ class LangSetService extends LangService
                     return substr(basename($file), 0, -4);
                 })
         )->flatten()->unique()->sort()->values();
+    }
+
+    public function setOutput(OutputStyle $output): void
+    {
+        $this->output = $output;
     }
 }

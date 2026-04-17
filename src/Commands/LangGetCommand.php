@@ -13,7 +13,7 @@ class LangGetCommand extends Command
      *
      * @var string
      */
-    protected $signature = 'lang:get  {--json}';
+    protected $signature = 'lang:get  {--json} {--arb}';
 
     /**
      * The console command description.
@@ -30,15 +30,20 @@ class LangGetCommand extends Command
      */
     public function handle(): int
     {
-        $json = $this->option('json');
         try {
             $service = new LangGetService();
             $service->setOutput($this->output);
-            if($json){
+            $this->output->info("Обнаружены языки: {$service->locales->join(', ')}");
+            $service->parseFromUrl();
+
+            if($this->option('json')){
                 $service->parseFromUrlToJson();
-            }else{
-                $service->parseFromUrlToPhp();
             }
+            if($this->option('arb')){
+                $service->parseFromUrlToArb();
+            }
+
+            $service->parseFromUrlToPhp();
         }catch (\Exception $e){
             $this->error($e->getMessage());
         }
