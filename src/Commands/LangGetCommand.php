@@ -5,6 +5,7 @@ namespace PkEngine\LangSyncExcel\Commands;
 
 use Illuminate\Console\Command;
 use PkEngine\LangSyncExcel\Services\LangGetService;
+use Symfony\Component\Console\Command\Command as CommandAlias;
 
 class LangGetCommand extends Command
 {
@@ -48,8 +49,6 @@ class LangGetCommand extends Command
             $this->error($e->getMessage());
         }
 
-
-
-        return Command::SUCCESS;
+        return CommandAlias::SUCCESS;
     }
 }

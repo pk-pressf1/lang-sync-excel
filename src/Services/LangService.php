@@ -32,7 +32,7 @@ abstract class LangService
         return collect(File::directories(lang_path('/')))->map(function ($dir) {
             return basename($dir);
         })->filter(function ($dir){
-            return ! in_array($dir, ['json', 'arb']);
+            return ! in_array($dir, ['json', 'arb', 'vendor']);
         });
     }
 
